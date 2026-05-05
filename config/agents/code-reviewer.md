@@ -7,8 +7,12 @@ permission:
   bash:
     "*": "ask"
     "git *": "allow"
-    "gh pr*": "allow"
-    "gh repo*": "allow"
+    "gh pr view *": "allow"
+    "gh pr list *": "allow"
+    "gh pr diff *": "allow"
+    "gh issue view *": "allow"
+    "gh issue list *": "allow"
+    "gh repo view *": "allow"
     "grep *": "allow"
     "cat *": "allow"
 ---

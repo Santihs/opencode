@@ -222,14 +222,16 @@ if ($DryRun) {
 
     Copy-Files
 
-    # Sync bash permission to the AppData opencode.json (Windows reads this first)
+    # Sync bash permission from source opencode.json to AppData (Windows reads AppData first)
     if ($env:OS -eq 'Windows_NT') {
         $appDataConfig = Join-Path $env:APPDATA 'opencode\opencode.json'
-        if (Test-Path $appDataConfig) {
+        $sourceConfig  = Join-Path $ConfigSource 'opencode.json'
+        if ((Test-Path $appDataConfig) -and (Test-Path $sourceConfig)) {
             $appJson = Get-Content $appDataConfig -Raw | ConvertFrom-Json
-            $appJson.permission.bash = 'allow'
+            $srcJson = Get-Content $sourceConfig  -Raw | ConvertFrom-Json
+            $appJson.permission = $srcJson.permission
             Set-Content -Path $appDataConfig -Value ($appJson | ConvertTo-Json -Depth 10) -Encoding UTF8
-            Write-Host "Synced bash:allow to $appDataConfig" -ForegroundColor Cyan
+            Write-Host "Synced permissions to $appDataConfig" -ForegroundColor Cyan
         }
     }
 
