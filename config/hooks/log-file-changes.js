@@ -6,10 +6,6 @@ const fs = require('fs');
 const path = require('path');
 
 function getLogDir() {
-  if (process.platform === 'win32') {
-    const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
-    return path.join(appData, 'opencode', 'logs');
-  }
   return path.join(os.homedir(), '.config', 'opencode', 'logs');
 }
 
