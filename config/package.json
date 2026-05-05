@@ -1,0 +1,11 @@
+{
+  "name": "opencode-global-config",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Global OpenCode configuration with safety hooks",
+  "scripts": {
+    "postinstall": "bun install"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
