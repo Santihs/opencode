@@ -1,7 +1,12 @@
+# Centralized before-bash hook
+# Add new bash checks below the validation section, new loggers below the logging section.
+
 $raw = [Console]::In.ReadToEnd()
 try { $data = $raw | ConvertFrom-Json } catch { exit 0 }
 $command = $data.tool_args.command
 if (-not $command) { exit 0 }
+
+# ── VALIDATION ────────────────────────────────────────────────────────────────
 
 if ($command -match 'git push.*(--force|-f).*(main|master)') {
     [Console]::Error.WriteLine("Force push to main/master is blocked. Use a PR instead.")
@@ -27,17 +32,28 @@ if ($command -match 'git checkout\s+--\s*\.') {
     [Console]::Error.WriteLine("Checkout that discards changes is blocked. Use git restore instead.")
     exit 2
 }
-if ($command -match '(mkfs|dd)\s+.*of=') {
-    [Console]::Error.WriteLine("System destructive commands are blocked.")
-    exit 2
-}
 if ($command -match 'git rebase\s+-i|git filter-branch|git push\s+--force-with-lease') {
     [Console]::Error.WriteLine("History-rewriting git operation is blocked. Ask first.")
+    exit 2
+}
+if ($command -match '(mkfs|dd)\s+.*of=') {
+    [Console]::Error.WriteLine("System destructive commands are blocked.")
     exit 2
 }
 if ($command -match '(curl|wget).*\|.*sh') {
     [Console]::Error.WriteLine("Curl/wget piping to shell is blocked. Save to file first.")
     exit 2
 }
+
+# ── LOGGING ───────────────────────────────────────────────────────────────────
+
+try {
+    $logDir = Join-Path $HOME '.config\opencode\logs'
+    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+    $ts   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+    $cwd  = (Get-Location).Path
+    $line = "$ts | cwd:$cwd | $($command -replace "`n", ' \n ')`n"
+    [System.IO.File]::AppendAllText((Join-Path $logDir 'commands.log'), $line)
+} catch { }
 
 exit 0

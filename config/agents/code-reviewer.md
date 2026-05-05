@@ -5,9 +5,10 @@ mode: subagent
 permission:
   edit: deny
   bash:
-    "*": "deny"
-    "git diff*": "allow"
-    "git log*": "allow"
+    "*": "ask"
+    "git *": "allow"
+    "gh pr*": "allow"
+    "gh repo*": "allow"
     "grep *": "allow"
     "cat *": "allow"
 ---

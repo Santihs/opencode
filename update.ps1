@@ -16,10 +16,8 @@ $ErrorActionPreference = "Stop"
 function Get-WindowsHookSubstitutions {
     param([string]$HooksDir)
     return @{
-        '$HOOK_VALIDATE_BASH'   = "powershell.exe -NonInteractive -File '$HooksDir\validate-bash.ps1'"
-        '$HOOK_LOG_COMMANDS'    = "powershell.exe -NonInteractive -File '$HooksDir\log-commands.ps1'"
-        '$HOOK_PROTECT_FILES'   = "powershell.exe -NonInteractive -File '$HooksDir\protect-sensitive-files.ps1'"
-        '$HOOK_LOG_FILE_CHANGES'= "powershell.exe -NonInteractive -File '$HooksDir\log-file-changes.ps1'"
+        '$HOOK_BEFORE_BASH' = "powershell.exe -NonInteractive -File '$HooksDir\before-bash.ps1'"
+        '$HOOK_BEFORE_FILE' = "powershell.exe -NonInteractive -File '$HooksDir\before-file.ps1'"
     }
 }
 
@@ -223,6 +221,17 @@ if ($DryRun) {
     }
 
     Copy-Files
+
+    # Sync bash permission to the AppData opencode.json (Windows reads this first)
+    if ($env:OS -eq 'Windows_NT') {
+        $appDataConfig = Join-Path $env:APPDATA 'opencode\opencode.json'
+        if (Test-Path $appDataConfig) {
+            $appJson = Get-Content $appDataConfig -Raw | ConvertFrom-Json
+            $appJson.permission.bash = 'allow'
+            Set-Content -Path $appDataConfig -Value ($appJson | ConvertTo-Json -Depth 10) -Encoding UTF8
+            Write-Host "Synced bash:allow to $appDataConfig" -ForegroundColor Cyan
+        }
+    }
 
     Write-Host ""
     Write-Host "Run these commands to verify:" -ForegroundColor Cyan
