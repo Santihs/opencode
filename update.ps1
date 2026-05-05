@@ -11,16 +11,23 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Build the hook command substitutions for Windows.
+# Uses powershell.exe with single-quoted Windows paths so bash (WSL) passes them through literally.
+function Get-WindowsHookSubstitutions {
+    param([string]$HooksDir)
+    return @{
+        '$HOOK_VALIDATE_BASH'   = "powershell.exe -NonInteractive -File '$HooksDir\validate-bash.ps1'"
+        '$HOOK_LOG_COMMANDS'    = "powershell.exe -NonInteractive -File '$HooksDir\log-commands.ps1'"
+        '$HOOK_PROTECT_FILES'   = "powershell.exe -NonInteractive -File '$HooksDir\protect-sensitive-files.ps1'"
+        '$HOOK_LOG_FILE_CHANGES'= "powershell.exe -NonInteractive -File '$HooksDir\log-file-changes.ps1'"
+    }
+}
+
 # Detect platform and set destination
 function Get-PlatformDestination {
     if ($env:OS -eq "Windows_NT") {
-        if ($env:APPDATA) {
-            return "$env:APPDATA\opencode", "$env:APPDATA\opencode-backups"
-        } else {
-            return "$HOME\AppData\Roaming\opencode", "$HOME\AppData\Roaming\opencode-backups"
-        }
+        return "C:\Users\santi\.config\opencode", "C:\Users\santi\.config\opencode-backups"
     } else {
-        # WSL or Git Bash
         return "$HOME/.config/opencode", "$HOME/.config/opencode-backups"
     }
 }
@@ -115,8 +122,19 @@ function New-Backup {
 # Copy a single file, expanding $OPENCODE_CONFIG_DIR in .md files
 function Copy-FileWithSubstitution {
     param([string]$Src, [string]$Dst)
-    if ($Src -match '\.md$') {
+    if ($Src -match 'opencode\.json$' -and $env:OS -eq 'Windows_NT') {
         $content = Get-Content -Path $Src -Raw -Encoding UTF8
+        $json = $content | ConvertFrom-Json
+        $json.plugin = @($json.plugin | Where-Object { $_ -notmatch 'warcraft' })
+        Set-Content -Path $Dst -Value ($json | ConvertTo-Json -Depth 10) -Encoding UTF8 -NoNewline
+    } elseif ($Src -match '\.md$') {
+        $content = Get-Content -Path $Src -Raw -Encoding UTF8
+        $hooksDir = Join-Path $DestDir 'hooks'
+        $subs = Get-WindowsHookSubstitutions -HooksDir $hooksDir
+        foreach ($key in $subs.Keys) {
+            $content = $content -replace [regex]::Escape($key), $subs[$key]
+        }
+        # Fallback: also expand $OPENCODE_CONFIG_DIR for any other .md files
         $content = $content -replace [regex]::Escape('$OPENCODE_CONFIG_DIR'), $DestDir
         Set-Content -Path $Dst -Value $content -Encoding UTF8 -NoNewline
     } else {
