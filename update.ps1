@@ -230,8 +230,9 @@ if ($DryRun) {
             $appJson = Get-Content $appDataConfig -Raw | ConvertFrom-Json
             $srcJson = Get-Content $sourceConfig  -Raw | ConvertFrom-Json
             $appJson.permission = $srcJson.permission
+            $appJson.plugin = @($appJson.plugin | Where-Object { $_ -notmatch 'warcraft' })
             Set-Content -Path $appDataConfig -Value ($appJson | ConvertTo-Json -Depth 10) -Encoding UTF8
-            Write-Host "Synced permissions to $appDataConfig" -ForegroundColor Cyan
+            Write-Host "Synced permissions + stripped warcraft from $appDataConfig" -ForegroundColor Cyan
         }
     }
 
