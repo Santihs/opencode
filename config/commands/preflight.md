@@ -1,6 +1,6 @@
 ---
 description: Discover and run reasonable project checks (lint, test, typecheck)
-agent: build
+agent: debugger
 ---
 
 # /preflight

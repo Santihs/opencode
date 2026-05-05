@@ -5,12 +5,22 @@ $filePath = if ($data.tool_args.filePath) { $data.tool_args.filePath }
             else { $data.tool_args.path }
 if (-not $filePath) { exit 0 }
 
+$basename = Split-Path $filePath -Leaf
+
 $blocked = @('.env','.env.local','.env.production','.env.production.local',
              'secrets','credentials','id_rsa','id_dsa','id_ecdsa','id_ed25519',
-             '.npmrc','.yarnrc','.pypirc','.pem','.key','.p12','.pfx')
+             '.npmrc','.yarnrc','.pypirc')
+
+$blockedExts = @('.pem','.key','.p12','.pfx')
 
 foreach ($p in $blocked) {
-    if ($filePath -match ([regex]::Escape($p) + '$')) {
+    if ($basename -eq $p -or $basename -match ('^' + [regex]::Escape($p) + '$')) {
+        [Console]::Error.WriteLine("Access to sensitive file is blocked: $filePath")
+        exit 2
+    }
+}
+foreach ($ext in $blockedExts) {
+    if ($basename.EndsWith($ext)) {
         [Console]::Error.WriteLine("Access to sensitive file is blocked: $filePath")
         exit 2
     }

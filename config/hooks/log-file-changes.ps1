@@ -12,6 +12,6 @@ try {
 
     $ts   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
     $line = "$ts | $toolName | $filePath`n"
-    Add-Content -Path (Join-Path $logDir 'file-changes.log') -Value $line -NoNewline
+    [System.IO.File]::AppendAllText((Join-Path $logDir 'file-changes.log'), $line)
 } catch { }
 exit 0

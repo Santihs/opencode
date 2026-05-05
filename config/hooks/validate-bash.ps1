@@ -31,7 +31,11 @@ if ($command -match '(mkfs|dd)\s+.*of=') {
     [Console]::Error.WriteLine("System destructive commands are blocked.")
     exit 2
 }
-if ($command -match 'curl|wget.*\|.*sh') {
+if ($command -match 'git rebase\s+-i|git filter-branch|git push\s+--force-with-lease') {
+    [Console]::Error.WriteLine("History-rewriting git operation is blocked. Ask first.")
+    exit 2
+}
+if ($command -match '(curl|wget).*\|.*sh') {
     [Console]::Error.WriteLine("Curl/wget piping to shell is blocked. Save to file first.")
     exit 2
 }

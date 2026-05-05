@@ -10,6 +10,6 @@ try {
     $ts  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
     $cwd = (Get-Location).Path
     $line = "$ts | cwd:$cwd | $($command -replace "`n", ' \n ')`n"
-    Add-Content -Path (Join-Path $logDir 'commands.log') -Value $line -NoNewline
+    [System.IO.File]::AppendAllText((Join-Path $logDir 'commands.log'), $line)
 } catch { }
 exit 0

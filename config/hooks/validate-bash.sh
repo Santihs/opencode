@@ -55,8 +55,14 @@ if echo "$COMMAND" | grep -qE '(mkfs|dd)\s+.*of='; then
     exit 2
 fi
 
+# Block history-rewriting git operations
+if echo "$COMMAND" | grep -qE 'git rebase\s+-i|git filter-branch|git push\s+--force-with-lease'; then
+    echo "History-rewriting git operation is blocked. Ask first." >&2
+    exit 2
+fi
+
 # Block curl piping to shell without confirmation
-if echo "$COMMAND" | grep -qE 'curl\|wget.*\|.*sh'; then
+if echo "$COMMAND" | grep -qE '(curl|wget).*\|.*sh'; then
     echo "Curl/wget piping to shell is blocked. Save to file first." >&2
     exit 2
 fi

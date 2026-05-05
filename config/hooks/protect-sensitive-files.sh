@@ -15,8 +15,10 @@ fi
 # Normalize path (remove quotes)
 FILE_PATH=$(echo "$FILE_PATH" | sed 's/^["'"'"']//;s/["'"'"']$//')
 
-# Check for sensitive file patterns
-SENSITIVE_PATTERNS=(
+# Check basename only so subdirectory paths like /src/.env are caught
+BASENAME=$(basename "$FILE_PATH")
+
+SENSITIVE_NAMES=(
     ".env"
     ".env.local"
     ".env.production"
@@ -27,20 +29,22 @@ SENSITIVE_PATTERNS=(
     "id_dsa"
     "id_ecdsa"
     "id_ed25519"
-    "*.pem"
-    "*.key"
-    "*.p12"
-    "*.pfx"
     ".npmrc"
     ".yarnrc"
     ".pypirc"
 )
 
-for pattern in "${SENSITIVE_PATTERNS[@]}"; do
-    if echo "$FILE_PATH" | grep -qE "$pattern$"; then
+for name in "${SENSITIVE_NAMES[@]}"; do
+    if [ "$BASENAME" = "$name" ]; then
         echo "Access to sensitive file is blocked: $FILE_PATH" >&2
         exit 2
     fi
 done
+
+# Check by extension
+if echo "$BASENAME" | grep -qE '\.(pem|key|p12|pfx)$'; then
+    echo "Access to sensitive file is blocked: $FILE_PATH" >&2
+    exit 2
+fi
 
 exit 0
