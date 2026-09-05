@@ -5,8 +5,9 @@ Portable, source-controlled OpenCode defaults for development work. The configur
 ## Included
 
 - Specialized agents for architecture, reviews, debugging, documentation, frontend work, and Git safety.
-- Reusable commands and skills.
+- Reusable commands and skills, including lean agentic delivery guidance for token-conscious orchestration.
 - A local security plugin protecting `.env*`, credentials, private keys, certificates, and secret directories.
+- Caveman OpenCode integration for token-conscious provider proxying and output shrinking.
 - Context7 enabled for library documentation lookups.
 - Playwright registered but disabled; enable it only in a project that needs browser automation.
 
@@ -62,6 +63,7 @@ GitHub Actions runs the Bun security and audit tests on Ubuntu, plus the PowerSh
 ## MCPs
 
 - `context7` is enabled globally and requires no credential.
+- `caveman` is enabled globally after installing `@caveman-ai/cli` with `pnpm`; telemetry is disabled locally with `caveman telemetry off`.
 - `playwright` is disabled globally. Enable it only per project after confirming the browser data and actions it may access.
 - Configure GitHub, Sentry, Obsidian, and Anki integrations per project with least-privilege credentials; do not add tokens to `opencode.json`.
 

@@ -130,11 +130,30 @@
     "playwright": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
+        "pnpm",
+        "dlx",
         "@playwright/mcp"
       ],
       "enabled": false
+    },
+    "caveman": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\santi\\.caveman\\bin\\caveman-mcp.exe"
+      ],
+      "enabled": true
+    }
+  },
+  "provider": {
+    "openai": {
+      "options": {
+        "baseURL": "http://127.0.0.1:8787/w/opencode/openai/v1"
+      }
+    },
+    "anthropic": {
+      "options": {
+        "baseURL": "http://127.0.0.1:8787/w/opencode/anthropic/v1"
+      }
     }
   }
 }
