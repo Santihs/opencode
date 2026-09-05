@@ -1,11 +1,13 @@
 ---
 name: powershell-command-practices
-description: Use before running PowerShell shell commands, especially commands with executable paths, quoted paths, generated commands, or Windows-specific syntax. Prevents parser mistakes and encourages safe command execution.
+description: Use before running PowerShell shell commands, and immediately after ParserError, Unexpected token, quoted executable path, or caveman.CMD shrink command failures. Fixes missing call operator issues for quoted Windows executable paths.
 ---
 
 # PowerShell Command Practices
 
 Use this skill when preparing commands for OpenCode's PowerShell shell.
+
+Also use this skill as soon as a shell command fails with `ParserError`, `Unexpected token`, or a command shaped like `'...caveman.CMD' shrink -- ...`.
 
 ## Command Invocation
 
@@ -14,6 +16,23 @@ Use this skill when preparing commands for OpenCode's PowerShell shell.
 - Incorrect: `'C:/Users/santi/AppData/Local/pnpm/caveman.CMD' shrink -- git diff -- README.md`
 - A quoted path by itself is a string expression in PowerShell, not a command invocation.
 - Quote paths that contain spaces.
+
+## Error Recovery
+
+When a command fails with this shape:
+
+```text
+ParserError: Unexpected token 'shrink'
+'C:/Users/santi/AppData/Local/pnpm/caveman.CMD' shrink -- ...
+```
+
+Retry once with the call operator:
+
+```powershell
+& 'C:/Users/santi/AppData/Local/pnpm/caveman.CMD' shrink -- ...
+```
+
+Do not repeat the original malformed command.
 
 ## Working Directory
 
