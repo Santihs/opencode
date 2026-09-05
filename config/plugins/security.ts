@@ -21,29 +21,39 @@ export function createSecurityPlugin(options: { auditLogger?: AuditLogger; cwd?:
       if (input.tool === "bash") {
         const command = output.args.command
         if (typeof command !== "string") {
-          await audit(input, { event: "blocked", reason: "missing command" })
+          await audit(input, { event: "blocked", reason: "missing command", status: "blocked" })
           throw new Error("Bash commands without a string command are blocked by the global OpenCode security policy.")
         }
 
         const reason = classifyCommand(command)
         if (reason) {
-          await audit(input, { event: "blocked", command, reason })
+          await audit(input, { event: "blocked", command, reason, status: "blocked" })
           throw new Error(`${reason} is blocked by the global OpenCode security policy.`)
         }
 
-        await audit(input, { event: "attempt", command, decision: "allowed" })
+        await audit(input, { event: "attempt", command, decision: "allowed", status: "allowed" })
       }
     },
-    "tool.execute.after": async (input: AfterInput, output: { metadata: unknown }) => {
+    "tool.execute.after": async (input: AfterInput, output: { output?: unknown; metadata: unknown }) => {
       if (input.tool !== "bash" || typeof input.args.command !== "string") return
 
+      const exitCode = extractExitCode(output.metadata)
       await audit(input, {
         event: "completed",
         command: input.args.command,
-        exitCode: extractExitCode(output.metadata),
+        exitCode,
+        outputPreview: previewOutput(output.output),
+        status: typeof exitCode === "number" ? (exitCode === 0 ? "succeeded" : "failed") : "unknown",
       })
     },
   }
+}
+
+function previewOutput(output: unknown): string | undefined {
+  if (typeof output !== "string") return undefined
+  const preview = output.replace(/[\t\r\n]+/g, " ").trim()
+  if (!preview) return undefined
+  return preview.length > 300 ? `${preview.slice(0, 300)}...` : preview
 }
 
 export default async function securityPlugin(context?: { directory?: string }) {

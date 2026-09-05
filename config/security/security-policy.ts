@@ -24,6 +24,9 @@ export function isSensitivePath(value: string): boolean {
 }
 
 export function classifyCommand(command: string): string | undefined {
+  if (/^\s*["'][a-z]:[\\/][^"']+\.(?:bat|cmd|exe|ps1)["']\s+\S/i.test(command)) {
+    return "quoted executable path without PowerShell call operator"
+  }
   if (/\brm\s+-[a-z]*[rf][a-z]*\b/i.test(command)) return "recursive deletion"
   if (/\bremove-item\b(?=[^\n]*(?:-recurse|-r)(?=\s|$))(?=[^\n]*(?:-force|-f)(?=\s|$))/i.test(command)) {
     return "recursive deletion"

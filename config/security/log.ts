@@ -14,11 +14,14 @@ export type AuditEvent = {
   command?: string
   decision?: "allowed"
   reason?: string
+  outputPreview?: string
   exitCode?: number
+  status?: "allowed" | "blocked" | "succeeded" | "failed" | "unknown"
 }
 
 export function auditFileName(date: Date): string {
-  return `log_${date.toISOString().slice(0, 10)}.log`
+  const pad = (value: number) => String(value).padStart(2, "0")
+  return `log_${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}.log`
 }
 
 export function redactCommand(command: string): string {
@@ -38,13 +41,8 @@ export function createAuditLogger(auditDirectory = defaultAuditDirectory()) {
       if (eventID) pendingEventIds.add(eventID)
       try {
         await mkdir(auditDirectory, { recursive: true })
-        const record = {
-          schema: 1,
-          timestamp: new Date().toISOString(),
-          ...event,
-          ...(event.command ? { command: redactCommand(event.command) } : {}),
-        }
-        await appendFile(join(auditDirectory, auditFileName(new Date())), `${JSON.stringify(record)}\n`, "utf8")
+        const date = new Date()
+        await appendFile(join(auditDirectory, auditFileName(date)), `${formatAuditEvent(event, date)}\n`, "utf8")
         if (eventID) rememberEvent(eventID)
       } catch {
         // Audit storage must never bypass a block or disrupt an approved command.
@@ -53,6 +51,40 @@ export function createAuditLogger(auditDirectory = defaultAuditDirectory()) {
       }
     },
   }
+}
+
+export function formatAuditEvent(event: AuditEvent, date = new Date()): string {
+  return [
+    formatLocalTimestamp(date),
+    event.sessionID ?? "-",
+    event.event,
+    event.status ?? statusFor(event),
+    event.exitCode ?? "-",
+    event.callID ?? "-",
+    event.cwd ?? "-",
+    event.reason ?? "-",
+    event.outputPreview ? redactCommand(event.outputPreview) : "-",
+    event.command ? redactCommand(event.command) : "-",
+  ]
+    .map((value) => sanitizeField(String(value)))
+    .join("\t")
+}
+
+function formatLocalTimestamp(date: Date): string {
+  const pad = (value: number, length = 2) => String(value).padStart(length, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`
+}
+
+function sanitizeField(value: string): string {
+  return value.replace(/[\t\r\n]+/g, " ")
+}
+
+function statusFor(event: AuditEvent): "allowed" | "blocked" | "succeeded" | "failed" | "unknown" {
+  if (event.event === "attempt") return event.decision === "allowed" ? "allowed" : "unknown"
+  if (event.event === "blocked") return "blocked"
+  if (event.exitCode === 0) return "succeeded"
+  if (typeof event.exitCode === "number") return "failed"
+  return "unknown"
 }
 
 function defaultAuditDirectory(): string {
