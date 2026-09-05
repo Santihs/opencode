@@ -6,7 +6,12 @@ permission:
   edit: deny
   bash:
     "*": "ask"
-    "git *": "allow"
+    "git status*": "allow"
+    "git diff*": "allow"
+    "git log*": "allow"
+    "git show*": "allow"
+    "git branch*": "allow"
+    "git remote*": "allow"
     "gh pr view *": "allow"
     "gh pr list *": "allow"
     "gh pr diff *": "allow"

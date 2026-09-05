@@ -2,10 +2,8 @@
   "name": "opencode-global-config",
   "version": "1.0.0",
   "private": true,
-  "description": "Global OpenCode configuration with safety hooks",
+  "description": "Global OpenCode configuration with a local security plugin",
   "scripts": {
-    "postinstall": "bun install"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+    "test": "bun test"
+  }
 }

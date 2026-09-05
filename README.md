@@ -1,169 +1,62 @@
 # OpenCode Global Configuration
 
-This repository contains a portable, GitHub-tracked OpenCode configuration that can be installed globally on any machine.
+Portable, source-controlled OpenCode defaults for development work. The configuration uses native OpenCode permissions and a local TypeScript security plugin to protect sensitive files and reject a small set of unambiguous destructive commands without per-command PowerShell startup overhead.
 
-## Purpose
+## Included
 
-- Provide a consistent, safe OpenCode setup across machines
-- Reusable agents, commands, and skills for daily development
-- Safety hooks to prevent destructive operations
-- Easy install/update scripts for quick onboarding
+- Specialized agents for architecture, reviews, debugging, documentation, frontend work, and Git safety.
+- Reusable commands and skills.
+- A local security plugin protecting `.env*`, credentials, private keys, certificates, and secret directories.
+- Context7 enabled for library documentation lookups.
+- Playwright registered but disabled; enable it only in a project that needs browser automation.
 
-## What's Included
+## Install Or Update
 
-### Agents
-- `architect` — read-only architecture and tradeoff analysis
-- `code-reviewer` — read-only code review (bugs, security, regressions)
-- `debugger` — systematic root-cause debugging before fixes
-- `docs-writer` — documentation and onboarding
-- `frontend-engineer` — React/UI work without project assumptions
-- `git-guardian` — safe git workflow, commit planning
-
-### Commands
-- `/diff-summary` — summarize working tree or branch diff
-- `/explain-repo` — onboard a new user to a repo
-- `/preflight` — discover and run project checks
-- `/review-changes` — review staged/unstaged/untracked changes
-- `/safe-commit` — create commit plan, check secrets
-
-### Skills
-- `ask-questions-if-underspecified` — clarify before dangerous work
-- `git-safety` — branch, commit, push, secret handling
-- `systematic-debugging` — root-cause-first debugging
-- `tdd` — test-driven development workflow
-
-### Safety
-- Froggy hooks to block destructive bash commands
-- Protection for sensitive files (`.env`, secrets, keys)
-- Permission defaults that ask before dangerous edits
-
-## Installation
-
-### Linux / macOS
-
-```bash
-# Clone this repository
-git clone https://github.com/yourusername/opencode.git ~/opencode
-cd ~/opencode
-
-# Run the installer
-./update.sh
-```
-
-### Windows PowerShell
-
-```powershell
-# Clone this repository
-git clone https://github.com/yourusername/opencode.git $env:USERPROFILE\opencode
-cd $env:USERPROFILE\opencode
-
-# Run the installer
-.\update.ps1
-```
-
-## Update
-
-After pulling changes from the repository:
-
-```bash
-./update.sh
-```
-
-Or on Windows:
+OpenCode 1.18.28 uses `~/.config/opencode` on Windows, Linux, and macOS. On Windows this is typically `%USERPROFILE%\.config\opencode`, not `%APPDATA%\opencode`.
 
 ```powershell
 .\update.ps1
 ```
 
-## Options
-
-### Dry Run
-Preview what would be copied without making changes:
-
 ```bash
-./update.sh --dry-run
+./update.sh
 ```
+
+Both scripts back up the active configuration before updating source-owned files. They do not touch OpenCode runtime data such as logs, authentication, cache data, `node_modules`, or the legacy `%APPDATA%\opencode` directory.
+
+Preview an update:
 
 ```powershell
 .\update.ps1 -DryRun
 ```
 
-### Force Overwrite
-Replace all existing files (creates backup first):
-
 ```bash
-./update.sh --force
+./update.sh --dry-run
 ```
 
-```powershell
-.\update.ps1 -Force
-```
-
-### Restore from Backup
-Restore from a previous backup:
-
-```bash
-./update.sh --restore latest
-./update.sh --restore 20250504-143000
-```
+Restore a backup:
 
 ```powershell
 .\update.ps1 -Restore latest
-.\update.ps1 -Restore 20250504-143000
 ```
 
-## Backups
+```bash
+./update.sh --restore latest
+```
 
-Backups are stored in:
-
-- Linux/macOS: `~/.config/opencode-backups/YYYYMMDD-HHMMSS/`
-- Windows: `$env:APPDATA\opencode-backups\YYYYMMDD-HHMMSS\`
-
-## Configuration Locations
-
-After installation, your global OpenCode config will be at:
-
-- Linux/macOS: `~/.config/opencode/`
-- Windows: `$env:APPDATA\opencode`
-
-## Adding MCP Servers
-
-This template does not include active MCP configuration to avoid committing secrets.
-
-To add an MCP server:
-
-1. Edit your global `opencode.json`
-2. Add the MCP configuration (see `docs/mcp-setup.md` for examples)
-3. Authenticate if needed: `opencode mcp auth <server-name>`
-
-Common MCP servers (commented-out in template):
-- GitHub
-- Sentry
-- Context7
-
-## Verifying Installation
-
-After running the update script:
+Restart OpenCode after applying configuration changes, then run:
 
 ```bash
 opencode debug config
-opencode
+opencode mcp list
 ```
 
-## Project-Specific Configuration
+## Security Boundary
 
-For project-local OpenCode settings, add an `opencode.json` file and `.opencode/` directory in your project root.
+The configuration is a guardrail for trusted projects, not a sandbox against malicious project configuration. Project-local OpenCode configuration can override global defaults. Keep secrets out of repositories and use environment variables or OpenCode OAuth for MCP credentials.
 
-See `docs/deuna-migration.md` for the DeUna project migration example.
+## MCPs
 
-## Customization
-
-To customize agents, commands, or skills for a specific project:
-
-1. Copy the global file to your project
-2. Modify it there
-3. Project-local settings take precedence
-
-## License
-
-MIT — customize freely for your own setup.
+- `context7` is enabled globally and requires no credential.
+- `playwright` is disabled globally. Enable it only per project after confirming the browser data and actions it may access.
+- Configure GitHub, Sentry, Obsidian, and Anki integrations per project with least-privilege credentials; do not add tokens to `opencode.json`.

@@ -1,114 +1,26 @@
-# OpenCode Safety Model
+# Security Model
 
-This document describes what is allowed, asked for, and denied by the global configuration.
+## Native Permissions
 
-## Permission Defaults
+OpenCode permissions are the primary safety layer:
 
-### Read Actions
+- Sensitive paths are denied for read, edit, glob, and grep operations.
+- Arbitrary Bash commands require approval.
+- Only narrow, read-only Git and GitHub inspection commands are auto-approved.
+- Agents that claim read-only access cannot use broad `git *` permissions.
 
-| Pattern | Behavior | Reason |
-|---------|----------|--------|
-| `*` | allow | Most files are safe to read |
-| `*.env` | deny | Never read environment files |
-| `*.env.*` | deny | Never read environment variants |
+Protected paths include `.env*`, `secrets/**`, `credentials/**`, SSH private-key names, `.npmrc`, `.yarnrc`, `.pypirc`, and `.pem`, `.key`, `.p12`, `.pfx` files.
 
-### Edit Actions
+## Local Security Plugin
 
-| Pattern | Behavior | Reason |
-|---------|----------|--------|
-| `*` | ask | Confirm before making changes |
+`config/plugins/security.ts` runs in the OpenCode process. It normalizes direct file-tool arguments and rejects protected targets. It also blocks a small set of clear destructive shell operations, including recursive deletion, hard resets, forced cleanup, force pushes, protected-branch pushes, filesystem formatting, and download-pipe-shell commands.
 
-### Bash Actions
+The plugin is intentionally not a shell sandbox. Shell commands remain approval-gated, and users must not bypass policy through wrappers or alternate tools.
 
-| Pattern | Behavior | Reason |
-|---------|----------|--------|
-| `*` | ask | Confirm before running commands |
-| `git status*` | allow | Safe read-only commands |
-| `git diff*` | allow | Safe read-only commands |
-| `git log*` | allow | Safe read-only commands |
-| `git branch*` | allow | Safe read-only commands |
-| `grep *` | allow | Safe search commands |
+## MCP Boundaries
 
-### Web Actions
+Context7 is read-oriented documentation lookup. Playwright is disabled by default because browser automation can access authenticated sessions and perform remote actions. Configure other MCPs per project, use OAuth or environment interpolation for credentials, and grant least privilege.
 
-| Pattern | Behavior | Reason |
-|---------|----------|--------|
-| `*` | ask | Confirm before fetching from web |
+## Limits
 
-## Hook Enforcement
-
-Beyond permissions, Froggy hooks enforce:
-
-### Blocked Commands
-
-- Force push: `git push --force`, `git push -f`
-- Direct push to main/master (without PR workflow)
-- Hard reset: `git reset --hard`
-- Recursive delete: `rm -rf`
-- Git clean force: `git clean -fd`
-- Checkout discarding: `git checkout -- .`
-
-### Protected Files
-
-Hook scripts also block reading/writing:
-
-- `.env`, `.env.*`
-- `secrets/**`
-- `credentials/**`
-- `*.pem`, `*.key`
-- API keys, tokens, passwords
-
-## Why This Model
-
-### Safe Defaults
-
-- Ask before destructive operations
-- Block sensitive file access by default
-- Allow safe exploration and code review
-
-### Granular Control
-
-- Specific git commands allowed (status, diff, log)
-- Dangerous commands require approval
-- Per-command pattern matching
-
-### Defense in Depth
-
-1. Permissions: first layer of defense
-2. Hooks: second layer for complex checks
-3. Ask mode: human-in-the-loop
-
-## Overriding
-
-You can override defaults per-project or per-machine:
-
-1. Create `opencode.json` in project root
-2. Add your override permissions
-3. Project settings take precedence
-
-### Example Override
-
-```json
-{
-  "permission": {
-    "bash": {
-      "*": "allow",
-      "git push *": "ask"
-    }
-  }
-}
-```
-
-## Emergency Escape
-
-If locked out or blocked:
-
-1. Edit `~/.config/opencode/opencode.json` directly
-2. Remove or adjust permission rules
-3. Restart OpenCode
-
-Or temporarily rename the config:
-
-```bash
-mv ~/.config/opencode ~/.config/opencode-temp
-```
+Global configuration is not a hostile-project security boundary. A project-local OpenCode configuration can override it. Do not open untrusted repositories with unrestricted agent permissions, and never commit secrets.

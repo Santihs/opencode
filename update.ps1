@@ -1,249 +1,103 @@
-#
-# OpenCode Global Config Installer/Updater
-# Usage: .\update.ps1 [-DryRun] [-Force] [-Restore <backup-name>|latest]
-#
-
 param(
     [switch]$DryRun,
     [switch]$Force,
-    [string]$Restore
+    [string]$Restore,
+    [string]$ConfigDir
 )
 
 $ErrorActionPreference = "Stop"
 
-# Build the hook command substitutions for Windows.
-# Uses powershell.exe with single-quoted Windows paths so bash (WSL) passes them through literally.
-function Get-WindowsHookSubstitutions {
-    param([string]$HooksDir)
-    return @{
-        '$HOOK_BEFORE_BASH' = "powershell.exe -NonInteractive -File '$HooksDir\before-bash.ps1'"
-        '$HOOK_BEFORE_FILE' = "powershell.exe -NonInteractive -File '$HooksDir\before-file.ps1'"
-    }
-}
-
-# Detect platform and set destination
-function Get-PlatformDestination {
-    if ($env:OS -eq "Windows_NT") {
-        return "C:\Users\santi\.config\opencode", "C:\Users\santi\.config\opencode-backups"
-    } else {
-        return "$HOME/.config/opencode", "$HOME/.config/opencode-backups"
-    }
-}
-
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ConfigSource = "$ScriptDir\config"
+$SourceDir = Join-Path $ScriptDir "config"
+$ConfigRoot = if ($ConfigDir) {
+    Split-Path -Parent ([System.IO.Path]::GetFullPath($ConfigDir))
+} elseif ($env:XDG_CONFIG_HOME) {
+    $env:XDG_CONFIG_HOME
+} else {
+    Join-Path $HOME ".config"
+}
+$Destination = if ($ConfigDir) { [System.IO.Path]::GetFullPath($ConfigDir) } else { Join-Path $ConfigRoot "opencode" }
+$BackupRoot = Join-Path $ConfigRoot "opencode-backups"
+$RetiredPaths = @("hook", "hooks")
 
-$DestDir, $BackupDir = Get-PlatformDestination
+function New-Backup {
+    if (-not (Test-Path -LiteralPath $Destination)) { return }
 
-# Check if running in PowerShell
-$IsPowerShell = $PSVersionTable.PSVersion.Major -ge 6 -or -not ($BASH_VERSION)
-
-Write-Host "OpenCode Global Config Installer" -ForegroundColor Cyan
-Write-Host "=============================" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Source:      $ConfigSource"
-Write-Host "Destination: $DestDir"
-Write-Host ""
-
-if ($DryRun) {
-    Write-Host "[DRY RUN] No changes will be made" -ForegroundColor Yellow
-    Write-Host ""
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmssfff"
+    $backup = Join-Path $BackupRoot $timestamp
+    New-Item -ItemType Directory -Force -Path $BackupRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $backup | Out-Null
+    Get-ChildItem -LiteralPath $Destination -Force | Copy-Item -Destination $backup -Recurse -Force
+    Write-Host "Backup: $backup"
 }
 
-# Handle restore mode
-if ($Restore) {
-    $RestorePath = $null
-
+function Get-RestorePath {
     if ($Restore -eq "latest") {
-        $latest = Get-ChildItem -Path $BackupDir -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
-        if ($latest) {
-            $RestorePath = $latest.FullName
-        }
-    } else {
-        $candidate = "$BackupDir\$Restore"
-        if (Test-Path $candidate) {
-            $RestorePath = $candidate
-        }
+        return Get-ChildItem -LiteralPath $BackupRoot -Directory |
+            Sort-Object Name -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
     }
 
-    if (-not $RestorePath) {
-        Write-Host "Error: Backup not found: $Restore" -ForegroundColor Red
-        exit 1
+    return Join-Path $BackupRoot $Restore
+}
+
+if ($Restore) {
+    $restorePath = Get-RestorePath
+    if (-not $restorePath -or -not (Test-Path -LiteralPath $restorePath)) {
+        throw "Backup not found: $Restore"
     }
 
-    Write-Host "Restoring from backup: $RestorePath" -ForegroundColor Yellow
+    if ($DryRun) {
+        Write-Host "[DRY RUN] Would restore $restorePath to $Destination"
+        exit 0
+    }
 
-    if (-not $DryRun) {
-        # Remove existing and restore
-        if (Test-Path $DestDir) {
-            Remove-Item -Path $DestDir -Recurse -Force
-        }
-        Copy-Item -Path $RestorePath -Destination $DestDir -Recurse
-        Write-Host "Restore complete!" -ForegroundColor Green
+    New-Backup
+    $staging = "$Destination.restore-$([guid]::NewGuid())"
+    New-Item -ItemType Directory -Force -Path $staging | Out-Null
+    Get-ChildItem -LiteralPath $restorePath -Force | Copy-Item -Destination $staging -Recurse -Force
+    if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
+    Move-Item -LiteralPath $staging -Destination $Destination
+    Write-Host "Restored: $restorePath"
+    exit 0
+}
+
+if (-not (Test-Path -LiteralPath $SourceDir)) {
+    throw "Source config directory not found: $SourceDir"
+}
+
+Write-Host "Source: $SourceDir"
+Write-Host "Destination: $Destination"
+if ($Force) { Write-Warning "-Force is no longer needed; normal updates replace source-owned files." }
+
+$sourceItems = Get-ChildItem -LiteralPath $SourceDir -Force
+if ($DryRun) {
+    $sourceItems | ForEach-Object { Write-Host "[DRY RUN] Update $($_.Name)" }
+    $RetiredPaths | ForEach-Object {
+        if (Test-Path -LiteralPath (Join-Path $Destination $_)) { Write-Host "[DRY RUN] Remove retired $_" }
     }
     exit 0
 }
 
-# Helper function to check if file is safe to copy
-function Test-SafeToCopy {
-    param([string]$Path)
-    $name = Split-Path -Leaf $Path
+New-Backup
+New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 
-    # Check filename patterns
-    if ($name -match '^\.env$' -or $name -match '^\.env\.' -or $name -match '\.local\.json$' -or $name -eq 'secrets' -or $name -eq 'credentials' -or $name -match '\.pem$' -or $name -match '\.key$') {
-        return $false
-    }
-
-    # Check path patterns
-    if ($Path -match 'secrets' -or $Path -match 'credentials' -or $Path -match '\.pem$' -or $Path -match '\.key$') {
-        return $false
-    }
-
-    return $true
+foreach ($item in $sourceItems) {
+    $target = Join-Path $Destination $item.Name
+    if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+    Copy-Item -LiteralPath $item.FullName -Destination $target -Recurse -Force
+    Write-Host "Updated: $($item.Name)"
 }
 
-# Create backup
-function New-Backup {
-    if (Test-Path $DestDir) {
-        $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-        $backupPath = "$BackupDir\$timestamp"
-
-        Write-Host "Creating backup at $backupPath..." -ForegroundColor Yellow
-        New-Item -Path $BackupDir -ItemType Directory -Force | Out-Null
-        Copy-Item -Path $DestDir -Destination $backupPath -Recurse -Force
-        Write-Host "Backup created: $backupPath" -ForegroundColor Green
-    } else {
-        Write-Host "No existing config to backup (destination does not exist)" -ForegroundColor Yellow
+foreach ($name in $RetiredPaths) {
+    $target = Join-Path $Destination $name
+    if (Test-Path -LiteralPath $target) {
+        Remove-Item -LiteralPath $target -Recurse -Force
+        Write-Host "Removed retired configuration: $name"
     }
 }
 
-# Copy a single file, expanding $OPENCODE_CONFIG_DIR in .md files
-function Copy-FileWithSubstitution {
-    param([string]$Src, [string]$Dst)
-    if ($Src -match 'opencode\.json$' -and $env:OS -eq 'Windows_NT') {
-        $content = Get-Content -Path $Src -Raw -Encoding UTF8
-        $json = $content | ConvertFrom-Json
-        $json.plugin = @($json.plugin | Where-Object { $_ -notmatch 'warcraft' })
-        Set-Content -Path $Dst -Value ($json | ConvertTo-Json -Depth 10) -Encoding UTF8 -NoNewline
-    } elseif ($Src -match '\.md$') {
-        $content = Get-Content -Path $Src -Raw -Encoding UTF8
-        $hooksDir = Join-Path $DestDir 'hooks'
-        $subs = Get-WindowsHookSubstitutions -HooksDir $hooksDir
-        foreach ($key in $subs.Keys) {
-            $content = $content -replace [regex]::Escape($key), $subs[$key]
-        }
-        # Fallback: also expand $OPENCODE_CONFIG_DIR for any other .md files
-        $content = $content -replace [regex]::Escape('$OPENCODE_CONFIG_DIR'), $DestDir
-        Set-Content -Path $Dst -Value $content -Encoding UTF8 -NoNewline
-    } else {
-        Copy-Item -Path $Src -Destination $Dst -Force
-    }
-}
-
-# Recursively copy a directory, applying substitution to .md files
-function Copy-DirWithSubstitution {
-    param([string]$Src, [string]$Dst)
-    New-Item -Path $Dst -ItemType Directory -Force | Out-Null
-    foreach ($child in Get-ChildItem -Path $Src -Force) {
-        $destChild = Join-Path $Dst $child.Name
-        if ($child.PSIsContainer) {
-            Copy-DirWithSubstitution -Src $child.FullName -Dst $destChild
-        } else {
-            Copy-FileWithSubstitution -Src $child.FullName -Dst $destChild
-        }
-    }
-}
-
-# Copy files
-function Copy-Files {
-    $copied = 0
-    $skipped = 0
-
-    # Create destination if needed
-    if (-not (Test-Path $DestDir)) {
-        New-Item -Path $DestDir -ItemType Directory -Force | Out-Null
-    }
-
-    # Copy each item from config/
-    $items = Get-ChildItem -Path $ConfigSource -Force -ErrorAction SilentlyContinue
-    foreach ($item in $items) {
-        if (-not (Test-SafeToCopy $item.FullName)) {
-            Write-Host "Skipping (unsafe): $($item.Name)" -ForegroundColor DarkGray
-            $skipped++
-            continue
-        }
-
-        $destItem = Join-Path $DestDir $item.Name
-
-        if (Test-Path $destItem) {
-            if ($Force) {
-                Write-Host "Overwriting: $($item.Name)" -ForegroundColor Yellow
-                Remove-Item -Path $destItem -Recurse -Force
-                if ($item.PSIsContainer) {
-                    Copy-DirWithSubstitution -Src $item.FullName -Dst $destItem
-                } else {
-                    Copy-FileWithSubstitution -Src $item.FullName -Dst $destItem
-                }
-                $copied++
-            } else {
-                Write-Host "Skipping (exists): $($item.Name)" -ForegroundColor DarkGray
-                $skipped++
-            }
-        } else {
-            Write-Host "Creating: $($item.Name)" -ForegroundColor Green
-            if ($item.PSIsContainer) {
-                Copy-DirWithSubstitution -Src $item.FullName -Dst $destItem
-            } else {
-                Copy-FileWithSubstitution -Src $item.FullName -Dst $destItem
-            }
-            $copied++
-        }
-    }
-
-    Write-Host ""
-    Write-Host "Summary:" -ForegroundColor Cyan
-    Write-Host "  Copied: $copied"
-    Write-Host "  Skipped: $skipped"
-}
-
-# Main execution
-if ($DryRun) {
-    Write-Host "Would copy files from config/ to destination:" -ForegroundColor Yellow
-    Get-ChildItem -Path $ConfigSource -ErrorAction SilentlyContinue | ForEach-Object {
-        $safe = Test-SafeToCopy $_.FullName
-        $status = if ($safe) { "OK" } else { "SKIP" }
-        Write-Host "  [$status] $($_.Name)"
-    }
-} else {
-    # Create backup if force and destination exists
-    if ($Force -and (Test-Path $DestDir)) {
-        New-Backup
-    }
-
-    Copy-Files
-
-    # Sync bash permission from source opencode.json to AppData (Windows reads AppData first)
-    if ($env:OS -eq 'Windows_NT') {
-        $appDataConfig = Join-Path $env:APPDATA 'opencode\opencode.json'
-        $sourceConfig  = Join-Path $ConfigSource 'opencode.json'
-        if ((Test-Path $appDataConfig) -and (Test-Path $sourceConfig)) {
-            $appJson = Get-Content $appDataConfig -Raw | ConvertFrom-Json
-            $srcJson = Get-Content $sourceConfig  -Raw | ConvertFrom-Json
-            $appJson.permission = $srcJson.permission
-            $appJson.plugin = @($appJson.plugin | Where-Object { $_ -notmatch 'warcraft' })
-            Set-Content -Path $appDataConfig -Value ($appJson | ConvertTo-Json -Depth 10) -Encoding UTF8
-            Write-Host "Synced permissions + stripped warcraft from $appDataConfig" -ForegroundColor Cyan
-        }
-    }
-
-    Write-Host ""
-    Write-Host "Run these commands to verify:" -ForegroundColor Cyan
-    Write-Host "  opencode debug config"
-    Write-Host "  opencode"
-    Write-Host ""
-    Write-Host "To list available agents:" -ForegroundColor Cyan
-    Write-Host "  opencode agent list"
-    Write-Host ""
-    Write-Host "To list available commands:" -ForegroundColor Cyan
-    Write-Host "  opencode command list"
-}
+Write-Host ""
+Write-Host "Restart OpenCode, then verify with:"
+Write-Host "  opencode debug config"
+Write-Host "  opencode mcp list"

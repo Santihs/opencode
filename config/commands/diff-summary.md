@@ -7,6 +7,8 @@ agent: git-guardian
 
 Show a summary of current changes in the working tree or between branches.
 
+Requested comparison: `$ARGUMENTS`
+
 ## Usage
 
 - `/diff-summary` — shows staged, unstaged, and untracked changes

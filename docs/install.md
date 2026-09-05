@@ -1,162 +1,26 @@
-# OpenCode Installation and Update Guide
+# Installation And Update
 
-This guide covers installing and updating the global OpenCode configuration on different platforms.
+OpenCode 1.18.28 stores global configuration in `~/.config/opencode`. On Windows this resolves to `%USERPROFILE%\.config\opencode`.
 
-## Prerequisites
-
-- [OpenCode installed](https://opencode.ai)
-- A cloned copy of this repository
-
-## Installation
-
-### Linux / macOS (Bash/Zsh)
-
-```bash
-# 1. Clone this repository
-git clone https://github.com/yourusername/opencode.git ~/opencode
-cd ~/opencode
-
-# 2. Run the installer
-./update.sh
-```
-
-### Windows (PowerShell)
+Run the installer from this repository:
 
 ```powershell
-# 1. Clone this repository
-git clone https://github.com/yourusername/opencode.git $env:USERPROFILE\opencode
-cd $env:USERPROFILE\opencode
-
-# 2. Run the installer
 .\update.ps1
 ```
 
-## Updating
-
-After pulling changes from the repository:
-
 ```bash
-# Linux/macOS
 ./update.sh
-
-# Windows
-.\update.ps1
 ```
 
-The update script will:
+Each update creates a timestamped backup in `~/.config/opencode-backups` before replacing source-owned configuration files. Runtime-generated content such as logs, package installations, and authentication remains untouched.
 
-1. Create a timestamped backup of existing config
-2. Copy new files from `config/` to the destination
-3. Print a summary of changes
+Use `-DryRun` or `--dry-run` to preview updates. Restore a backup with `-Restore <id>|latest` or `--restore <id>|latest`.
 
-## Options
-
-### Dry Run
-
-Preview what would be copied:
-
-```bash
-./update.sh --dry-run
-```
-
-```powershell
-.\update.ps1 -DryRun
-```
-
-### Force Overwrite
-
-Replace existing files:
-
-```bash
-./update.sh --force
-```
-
-```powershell
-.\update.ps1 -Force
-```
-
-### Restore from Backup
-
-Restore from a previous backup:
-
-```bash
-./update.sh --restore latest
-./update.sh --restore 20250504-143000
-```
-
-```powershell
-.\update.ps1 -Restore latest
-.\update.ps1 -Restore 20250504-143000
-```
-
-## Configuration Locations
-
-After installation, your config will be at:
-
-| Platform | Location |
-|---------|----------|
-| Linux | `~/.config/opencode/` |
-| macOS | `~/.config/opencode/` |
-| Windows | `%APPDATA%\opencode\` |
-
-Backups are stored in same directory structure under `opencode-backups/`.
-
-## Verifying Installation
+Restart OpenCode after an update. Verify the result with:
 
 ```bash
 opencode debug config
-opencode
+opencode mcp list
 ```
 
-## Adding MCP Servers
-
-This template does NOT include MCP configuration to avoid committing secrets.
-
-### Adding an MCP Server
-
-1. Edit your global config:
-   - Linux/macOS: `~/.config/opencode/opencode.json`
-   - Windows: `%APPDATA%\opencode\opencode.json`
-
-2. Add your MCP configuration:
-
-```json
-{
-  "mcp": {
-    "my-mcp": {
-      "type": "remote",
-      "url": "https://mcp.example.com/mcp",
-      "headers": {
-        "API_KEY": "{env:MY_MCP_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-3. Authenticate if needed:
-
-```bash
-opencode mcp auth my-mcp
-```
-
-### Common MCP Servers
-
-See [OpenCode MCP documentation](https://opencode.ai/docs/mcp-servers/) for more.
-
-## Customizing Per-Project
-
-Add project-specific settings in your project root:
-
-- `opencode.json` — project config
-- `.opencode/` — project agents, commands, skills, plugins
-
-Project settings override global settings.
-
-## Uninstalling
-
-Simply delete the global config directory:
-
-```bash
-rm -rf ~/.config/opencode
-```
+`%APPDATA%\opencode` is an inactive legacy location for this setup. The installer never reads, writes, or synchronizes it.
