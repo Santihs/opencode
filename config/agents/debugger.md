@@ -9,7 +9,6 @@ permission:
     "git diff*": "allow"
     "git log*": "allow"
     "grep *": "allow"
-    "npm test*": "allow"
     "pnpm test*": "allow"
     "cat *": "allow"
     "ls *": "allow"

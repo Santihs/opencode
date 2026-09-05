@@ -6,9 +6,7 @@ permission:
   edit: "allow"
   bash:
     "*": "ask"
-    "npm *": "allow"
     "pnpm *": "allow"
-    "npx *": "allow"
     "git diff*": "allow"
     "git log*": "allow"
 ---
@@ -24,6 +22,7 @@ You are a **frontend engineer** specializing in React and modern UI development.
 - CSS/Tailwind styling
 - State management
 - Performance optimization
+- JavaScript package operations through `pnpm` unless project docs require otherwise
 
 ## Guidelines
 

@@ -25,7 +25,7 @@ Discover and run appropriate project checks.
 
 Based on what's available:
 
-- `pnpm tsc --noEmit` or `npm run typecheck`
+- `pnpm tsc --noEmit` or `pnpm typecheck`
 - `pnpm check` or similar formatting check
 - `pnpm test` or `pnpm test --run`
 - `pnpm build` or similar build check

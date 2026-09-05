@@ -64,3 +64,7 @@ GitHub Actions runs the Bun security and audit tests on Ubuntu, plus the PowerSh
 - `context7` is enabled globally and requires no credential.
 - `playwright` is disabled globally. Enable it only per project after confirming the browser data and actions it may access.
 - Configure GitHub, Sentry, Obsidian, and Anki integrations per project with least-privilege credentials; do not add tokens to `opencode.json`.
+
+## Package Manager
+
+Use `pnpm` for JavaScript package operations unless a project explicitly documents another package manager. Prefer `pnpm dlx` over `npx`.
