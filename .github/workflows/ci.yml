@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bun:
+    name: Bun security tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Run security and audit tests
+        working-directory: config
+        run: bun test
+      - name: Validate Bash installer syntax
+        run: bash -n ./update.sh
+      - name: Check diff whitespace
+        run: git diff --check
+
+  powershell:
+    name: PowerShell installer tests
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module Pester -RequiredVersion 6.1.0 -Scope CurrentUser -Force -SkipPublisherCheck
+      - name: Run installer tests
+        shell: pwsh
+        run: Invoke-Pester -Path .\tests\update.Tests.ps1 -CI
+      - name: Validate installer dry run
+        shell: pwsh
+        run: .\update.ps1 -DryRun
