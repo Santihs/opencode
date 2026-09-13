@@ -35,7 +35,7 @@ jobs:
         run: Install-Module Pester -RequiredVersion 6.1.0 -Scope CurrentUser -Force -SkipPublisherCheck
       - name: Run installer tests
         shell: pwsh
-        run: Invoke-Pester -Path .\tests\update.Tests.ps1 -CI
+        run: Invoke-Pester -Path .\tests -CI
       - name: Validate installer dry run
         shell: pwsh
         run: .\update.ps1 -DryRun

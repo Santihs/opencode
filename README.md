@@ -11,6 +11,17 @@ Portable, source-controlled OpenCode defaults for development work. The configur
 - Context7 enabled for library documentation lookups.
 - Playwright registered but disabled; enable it only in a project that needs browser automation.
 
+## Orchestration
+
+- **Architect** = Terra `high` for planning and final validation.
+- **Luna** = `max` for bounded implementation.
+- **Deep Advisor** = Terra `xhigh` for critical decisions.
+- **Reviewer** = Terra `high` for high-risk review.
+- `steps` cap tool iterations rather than tokens.
+- A TUI-selected model variant overrides the source-controlled agent variant for that session; select `high` for normal Architect work.
+- Only Architect, Deep Advisor, and Reviewer have metadata-only Bash inspection: `git status --short` and `git branch --show-current`. The Reviewer cannot auto-run `git diff` through Bash.
+- This orchestration is a guardrail for trusted projects, not a hostile-project security boundary.
+
 ## Install Or Update
 
 OpenCode 1.18.28 uses `~/.config/opencode` on Windows, Linux, and macOS. On Windows this is typically `%USERPROFILE%\.config\opencode`, not `%APPDATA%\opencode`.

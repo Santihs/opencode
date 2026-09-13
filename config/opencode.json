@@ -6,6 +6,8 @@
   "share": "manual",
   "autoupdate": "notify",
   "formatter": true,
+  "default_agent": "architect",
+  "subagent_depth": 1,
   "instructions": [
     "AGENTS.md"
   ],
