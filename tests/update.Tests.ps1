@@ -12,18 +12,20 @@ Describe "OpenCode config installer" {
         Test-Path -LiteralPath $configDir | Should -Be $false
     }
 
-    It "updates managed files, preserves runtime files, removes retired hooks, and creates a backup" {
+    It "updates managed files, preserves runtime files, removes retired plugins and hooks, and creates a backup" {
         New-Item -ItemType Directory -Force -Path (Join-Path $configDir "hooks") | Out-Null
         New-Item -ItemType Directory -Force -Path (Join-Path $configDir "hook") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $configDir "plugins") | Out-Null
         Set-Content -LiteralPath (Join-Path $configDir "runtime-state.txt") -Value "keep"
 
         & $installerPath -ConfigDir $configDir
 
-        Test-Path -LiteralPath (Join-Path $configDir "plugins\security.ts") | Should -Be $true
+        Test-Path -LiteralPath (Join-Path $configDir "security\security-policy.ts") | Should -Be $true
         Test-Path -LiteralPath (Join-Path $configDir "AGENTS.md") | Should -Be $true
         Test-Path -LiteralPath (Join-Path $configDir "runtime-state.txt") | Should -Be $true
         Test-Path -LiteralPath (Join-Path $configDir "hook") | Should -Be $false
         Test-Path -LiteralPath (Join-Path $configDir "hooks") | Should -Be $false
+        Test-Path -LiteralPath (Join-Path $configDir "plugins") | Should -Be $false
         @(Get-ChildItem -LiteralPath $backupDir -Directory).Count | Should -Be 1
     }
 

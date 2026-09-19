@@ -1,8 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "@warp-dot-dev/opencode-warp"
-  ],
   "share": "manual",
   "autoupdate": "notify",
   "formatter": true,
@@ -143,7 +140,7 @@
       "command": [
         "C:\\Users\\santi\\.caveman\\bin\\caveman-mcp.exe"
       ],
-      "enabled": true
+      "enabled": false
     }
   },
   "provider": {

@@ -99,10 +99,10 @@ Describe "OpenCode agent orchestration configuration" {
         $configRoot = Join-Path $repoRoot "config"
 
         $script:openCodeConfig = Get-Content -LiteralPath (Join-Path $configRoot "opencode.json") -Raw | ConvertFrom-Json
-        $script:architect = Get-Content -LiteralPath (Join-Path $configRoot "agents\architect.md") -Raw
-        $script:lunaImplementer = Get-Content -LiteralPath (Join-Path $configRoot "agents\luna-implementer.md") -Raw
-        $script:deepAdvisor = Get-Content -LiteralPath (Join-Path $configRoot "agents\deep-advisor.md") -Raw
-        $script:reviewer = Get-Content -LiteralPath (Join-Path $configRoot "agents\code-reviewer.md") -Raw
+        $script:architect = (Get-Content -LiteralPath (Join-Path $configRoot "agents\architect.md") -Raw) -replace "`r`n", "`n"
+        $script:lunaImplementer = (Get-Content -LiteralPath (Join-Path $configRoot "agents\luna-implementer.md") -Raw) -replace "`r`n", "`n"
+        $script:deepAdvisor = (Get-Content -LiteralPath (Join-Path $configRoot "agents\deep-advisor.md") -Raw) -replace "`r`n", "`n"
+        $script:reviewer = (Get-Content -LiteralPath (Join-Path $configRoot "agents\code-reviewer.md") -Raw) -replace "`r`n", "`n"
         $script:readOnlyAgents = [ordered]@{
             "architect" = $script:architect
             "code-reviewer" = $script:reviewer

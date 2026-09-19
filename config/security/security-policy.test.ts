@@ -5,7 +5,6 @@ import { join } from "node:path"
 
 import { auditFileName, createAuditLogger, formatAuditEvent, redactCommand } from "./log"
 import { classifyCommand, isSensitivePath } from "./security-policy"
-import { createSecurityPlugin } from "../plugins/security"
 
 describe("isSensitivePath", () => {
   test.each([
@@ -60,60 +59,6 @@ describe("classifyCommand", () => {
     "Remove-Item -Recurse temp",
   ])("does not overreach on %s", (command) => {
     expect(classifyCommand(command)).toBeUndefined()
-  })
-})
-
-describe("security plugin", () => {
-  test("rejects direct reads of sensitive files", async () => {
-    const plugin = await createSecurityPlugin({ auditLogger: createAuditLogger(join(tmpdir(), "opencode-test-audit")) })
-    const hook = plugin["tool.execute.before"]
-
-    await expect(hook({ tool: "read" }, { args: { filePath: "secrets/token.txt" } })).rejects.toThrow(
-      "Access to sensitive files is blocked",
-    )
-  })
-
-  test("rejects destructive bash commands", async () => {
-    const auditDirectory = await mkdtemp(join(tmpdir(), "opencode-audit-"))
-    const plugin = await createSecurityPlugin({ auditLogger: createAuditLogger(auditDirectory) })
-    const hook = plugin["tool.execute.before"]
-
-    await expect(hook({ tool: "bash" }, { args: { command: "git reset --hard HEAD" } })).rejects.toThrow(
-      "destructive git reset is blocked",
-    )
-
-    const entries = await readAuditEntries(auditDirectory)
-    expect(entries.some((entry) => entry.includes("\tblocked\tblocked\t-") && entry.includes("\tdestructive git reset\t-\tgit reset --hard HEAD"))).toBe(true)
-    await rm(auditDirectory, { recursive: true, force: true })
-  })
-
-  test("allows ordinary file tools and approved shell candidates", async () => {
-    const auditDirectory = await mkdtemp(join(tmpdir(), "opencode-audit-"))
-    const plugin = await createSecurityPlugin({ auditLogger: createAuditLogger(auditDirectory) })
-    const hook = plugin["tool.execute.before"]
-
-    await expect(hook({ tool: "read" }, { args: { filePath: "src/index.ts" } })).resolves.toBeUndefined()
-    await expect(hook({ tool: "bash" }, { args: { command: "git status --short" } })).resolves.toBeUndefined()
-    await rm(auditDirectory, { recursive: true, force: true })
-  })
-
-  test("records allowed commands and their completion", async () => {
-    const auditDirectory = await mkdtemp(join(tmpdir(), "opencode-audit-"))
-    const plugin = await createSecurityPlugin({ auditLogger: createAuditLogger(auditDirectory) })
-    const before = plugin["tool.execute.before"]
-    const after = plugin["tool.execute.after"]
-
-    await before({ tool: "bash", sessionID: "session-1", callID: "call-1" }, { args: { command: "git status --short" } })
-    await after(
-      { tool: "bash", sessionID: "session-1", callID: "call-1", args: { command: "git status --short" } },
-      { title: "Bash", output: "M README.md", metadata: { exitCode: 0 } },
-    )
-
-    const entries = await readAuditEntries(auditDirectory)
-    expect(entries.some((entry) => entry.includes("\tsession-1\tattempt\tallowed\t-\tcall-1\t"))).toBe(true)
-    expect(entries.some((entry) => entry.includes("\tsession-1\tcompleted\tsucceeded\t0\tcall-1\t"))).toBe(true)
-    expect(entries.some((entry) => entry.includes("\tM README.md\tgit status --short"))).toBe(true)
-    await rm(auditDirectory, { recursive: true, force: true })
   })
 })
 

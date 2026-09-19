@@ -18,7 +18,7 @@ $ConfigRoot = if ($ConfigDir) {
 }
 $Destination = if ($ConfigDir) { [System.IO.Path]::GetFullPath($ConfigDir) } else { Join-Path $ConfigRoot "opencode" }
 $BackupRoot = Join-Path $ConfigRoot "opencode-backups"
-$RetiredPaths = @("hook", "hooks")
+$RetiredPaths = @("hook", "hooks", "plugins")
 
 function New-Backup {
     if (-not (Test-Path -LiteralPath $Destination)) { return }

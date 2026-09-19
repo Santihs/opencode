@@ -21,6 +21,8 @@ jobs:
         run: bun test
       - name: Validate Bash installer syntax
         run: bash -n ./update.sh
+      - name: Run Bash installer tests
+        run: bash ./tests/update.Tests.sh
       - name: Check diff whitespace
         run: git diff --check
 

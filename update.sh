@@ -8,7 +8,7 @@ DESTINATION="$CONFIG_ROOT/opencode"
 BACKUP_ROOT="$CONFIG_ROOT/opencode-backups"
 DRY_RUN=false
 RESTORE=""
-RETIRED_PATHS=(hook hooks)
+RETIRED_PATHS=(hook hooks plugins)
 
 usage() {
   echo "Usage: $0 [--dry-run] [--restore <backup-id>|latest]"
@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 backup() {
-  [[ -d "$DESTINATION" ]] || return
+  [[ -d "$DESTINATION" ]] || return 0
   local target="$BACKUP_ROOT/$(date +%Y%m%d-%H%M%S%3N)"
   mkdir -p "$BACKUP_ROOT"
   cp -a "$DESTINATION" "$target"

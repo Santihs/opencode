@@ -2,7 +2,7 @@
   "name": "opencode-global-config",
   "version": "1.0.0",
   "private": true,
-  "description": "Global OpenCode configuration with a local security plugin",
+  "description": "Global OpenCode configuration with safety-focused permissions",
   "scripts": {
     "test": "bun test"
   }

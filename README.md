@@ -1,13 +1,13 @@
 # OpenCode Global Configuration
 
-Portable, source-controlled OpenCode defaults for development work. The configuration uses native OpenCode permissions and a local TypeScript security plugin to protect sensitive files and reject a small set of unambiguous destructive commands without per-command PowerShell startup overhead.
+Portable, source-controlled OpenCode defaults for development work. The configuration uses native OpenCode permissions to protect sensitive paths and require approval for arbitrary shell commands.
 
 ## Included
 
 - Specialized agents for architecture, reviews, debugging, documentation, frontend work, and Git safety.
 - Reusable commands and skills, including lean agentic delivery guidance for token-conscious orchestration.
-- A local security plugin protecting `.env*`, credentials, private keys, certificates, and secret directories.
-- Caveman OpenCode integration for token-conscious provider proxying and output shrinking.
+- Native permissions protecting `.env*`, credentials, private keys, certificates, and secret directories.
+- Caveman OpenCode integration for token-conscious provider proxying and output shrinking on Windows.
 - Context7 enabled for library documentation lookups.
 - Playwright registered but disabled; enable it only in a project that needs browser automation.
 
@@ -69,12 +69,12 @@ The configuration is a guardrail for trusted projects, not a sandbox against mal
 
 ## Continuous Integration
 
-GitHub Actions runs the Bun security and audit tests on Ubuntu, plus the PowerShell installer tests on Windows, for every push and pull request. The workflow uses temporary test directories and never uploads audit logs or installs OpenCode.
+GitHub Actions runs the Bun security, audit, and Bash installer tests on Ubuntu, plus the PowerShell installer tests on Windows, for every push and pull request. The workflow uses temporary test directories and never uploads audit logs or installs OpenCode.
 
 ## MCPs
 
 - `context7` is enabled globally and requires no credential.
-- `caveman` is enabled globally after installing `@caveman-ai/cli` with `pnpm`; telemetry is disabled locally with `caveman telemetry off`.
+- `caveman` is disabled by default because its configured executable is Windows-specific. Enable it locally after installing `@caveman-ai/cli` with `pnpm`; telemetry is disabled locally with `caveman telemetry off`.
 - `playwright` is disabled globally. Enable it only per project after confirming the browser data and actions it may access.
 - Configure GitHub, Sentry, Obsidian, and Anki integrations per project with least-privilege credentials; do not add tokens to `opencode.json`.
 
